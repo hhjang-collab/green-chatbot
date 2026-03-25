@@ -165,7 +165,7 @@ with st.sidebar:
         """
         <div style="margin-top: 5px;">
             <a href="https://ip2b-work-tools.streamlit.app/" target="_self" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600;">
-                🔙 통합 포털로 돌아가기
+                🔙 돌아가기
             </a>
         </div>
         <hr style="margin-top: 15px; margin-bottom: 20px; border: 0; border-top: 1px solid rgba(49, 51, 63, 0.2);">
