@@ -165,7 +165,7 @@ with st.sidebar:
     st.markdown(
         """
         <div style="padding-bottom: 10px;">
-            <a href="https://your-portal-url.streamlit.app" target="_self" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600;">
+            <a href="https://ip2b-work-tools.streamlit.app/" target="_self" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600;">
                 🔙 통합 포털로 돌아가기
             </a>
         </div>
