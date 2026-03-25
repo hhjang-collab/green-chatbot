@@ -174,9 +174,9 @@ with st.sidebar:
         suggested_prompt = "녹색인증 유효기간은 어떻게 되나요?"
     if st.button("💰 인증 평가 수수료는?", use_container_width=True):
         suggested_prompt = "평가수수료는 얼마인가요?"
-    if st.button("🤝 기술/제품 동시 신청은?", use_container_width=True):
+    if st.button("🤝 기술, 제품 동시 신청은?", use_container_width=True):
         suggested_prompt = "동시신청이 가능한가요? 동시 신청 시 장점과 단점은 무엇인가요?"
-    if st.button("🗓️ 결과 발표 및 심의일은?", use_container_width=True):
+    if st.button("🗓️ 심의일정 및 결과발표는?", use_container_width=True):
         suggested_prompt = "심의위원회 개최날짜와 결과발표는 언제인가요?"
 
     # (기존에 밖으로 빠져있던 구분선을 사이드바 안으로 넣었습니다)
