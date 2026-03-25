@@ -156,7 +156,7 @@ def load_rag():
 with st.spinner("시스템을 준비하고 있습니다..."):
     rag_chain = load_rag()
 
-# --- 🎯 추천 질문 6개 (왼쪽 사이드바 고정) ---
+# --- 🎯 추천 질문 (왼쪽 사이드바 고정) ---
 suggested_prompt = None
 
 with st.sidebar:
@@ -166,21 +166,16 @@ with st.sidebar:
         suggested_prompt = "녹색인증의 종류는 무엇이 있나요?"
     if st.button("🎁 녹색인증의 혜택은?", use_container_width=True):
         suggested_prompt = "녹색인증에는 어떤 혜택이 있나요?"
+    if st.button("🔄 전체 인증 절차는?", use_container_width=True):
+        suggested_prompt = "전체 인증절차는 어떻게 되나요?"
     if st.button("📑 신청 구비 서류는?", use_container_width=True):
         suggested_prompt = "기술인증 신청 시 구비서류는 무엇인가요?"
     if st.button("⏳ 유효기간과 연장은?", use_container_width=True):
         suggested_prompt = "녹색인증 유효기간은 어떻게 되나요?"
     if st.button("💰 인증 평가 수수료는?", use_container_width=True):
         suggested_prompt = "평가수수료는 얼마인가요?"
-    if st.button("📋 종합평가 기준은?", use_container_width=True):
-        suggested_prompt = "종합평가 시 평가기준은 무엇인가요?"
-# --- 추가된 추천 질문 4개 ---
-    if st.button("🔄 전체 인증 절차는?", use_container_width=True):
-        suggested_prompt = "전체 인증절차는 어떻게 되나요?"
     if st.button("🤝 기술/제품 동시 신청은?", use_container_width=True):
         suggested_prompt = "동시신청이 가능한가요? 동시 신청 시 장점과 단점은 무엇인가요?"
-    if st.button("💸 수수료 환불 규정은?", use_container_width=True):
-        suggested_prompt = "평가진행 중에 취소할 수 있나요? 수수료 반환은 가능한가요?"
     if st.button("🗓️ 결과 발표 및 심의일은?", use_container_width=True):
         suggested_prompt = "심의위원회 개최날짜와 결과발표는 언제인가요?"
 
