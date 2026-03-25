@@ -85,7 +85,7 @@ if not st.session_state.authenticated:
         submitted = st.form_submit_button("확인")
         
         if submitted:
-            expected_pwd = st.secrets.get("CHAT_PASSWORD", "1234") 
+            expected_pwd = st.secrets.get("APP_PASSWORD", "1234") 
             if pwd == expected_pwd:
                 st.session_state.authenticated = True
                 st.rerun()
