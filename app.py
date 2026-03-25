@@ -168,7 +168,7 @@ with st.sidebar:
                 🔙 돌아가기
             </a>
         </div>
-        <hr style="margin-top: 15px; margin-bottom: 20px; border: 0; border-top: 1px solid rgba(49, 51, 63, 0.2);">
+        <hr style="margin-top: 10px; margin-bottom: 20px; border: 0; border-top: 1px solid rgba(49, 51, 63, 0.2);">
         """, 
         unsafe_allow_html=True
     )
