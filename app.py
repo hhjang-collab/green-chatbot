@@ -168,7 +168,7 @@ with st.sidebar:
                 🔙 통합 포털로 돌아가기
             </a>
         </div>
-        <hr style="margin-top: 15px; margin-bottom: 20px; border: 0; border-top: 1px solid rgba(49, 51, 63, 0.2);">
+        <hr style="margin-top: 15px; margin-bottom: 15px; border: 0; border-top: 1px solid rgba(49, 51, 63, 0.2);">
         """, 
         unsafe_allow_html=True
     )
@@ -193,8 +193,11 @@ with st.sidebar:
     if st.button("🗓️ 심의일정 및 결과발표는?", use_container_width=True):
         suggested_prompt = "심의위원회 개최날짜와 결과발표는 언제인가요?"
 
-    # (기존에 밖으로 빠져있던 구분선을 사이드바 안으로 넣었습니다)
-    st.markdown("---") 
+    # 기본 구분선 대신, 여백을 꽉 조인 HTML 구분선으로 교체!
+    st.markdown(
+        '<hr style="margin-top: 15px; margin-bottom: 15px; border: 0; border-top: 1px solid rgba(49, 51, 63, 0.2);">', 
+        unsafe_allow_html=True
+    )
     
     # 💡 [수정 2] 관련 정보 섹션을 링크 박스 버튼 스타일로 변경
     st.markdown("### 🔗 관련 링크")
