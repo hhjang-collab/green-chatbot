@@ -161,13 +161,14 @@ suggested_prompt = None
 
 with st.sidebar:
     # 텍스트 링크와 구분선(<hr>)을 하나로 합치고 margin을 직접 통제합니다.
-    # 클릭 영역을 명확히 하고, border-top 오타를 수정했습니다!
     st.markdown(
         """
-        <a href="https://ip2b-work-tools.streamlit.app/" target="_blank" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600; display: block; margin-top: 5px; padding-bottom: 5px;">
-            🏠 홈으로
-        </a>
-        <hr style="margin-top: 15px; margin-bottom: 20px; border: 0; border-top: 1px solid rgba(49, 51, 63, 0.2);">
+        <div style="margin-top: 5px;">
+            <a href="https://ip2b-work-tools.streamlit.app/" target="_blank" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600;">
+                🔙 돌아가기
+            </a>
+        </div>
+        <hr style="margin-top: 15px; margin-bottom: 20px; border: 0; border-blank: 1px solid rgba(49, 51, 63, 0.2);">
         """, 
         unsafe_allow_html=True
     )
