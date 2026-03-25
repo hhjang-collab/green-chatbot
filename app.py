@@ -164,7 +164,7 @@ with st.sidebar:
     st.markdown(
         """
         <div style="margin-top: 5px;">
-            <a href="https://ip2b-work-tools.streamlit.app/" target="_self" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600;">
+            <a href="https://ip2b-work-tools.streamlit.app/" target="_top" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600;">
                 🔙 돌아가기
             </a>
         </div>
