@@ -160,6 +160,11 @@ with st.spinner("시스템을 준비하고 있습니다..."):
 suggested_prompt = None
 
 with st.sidebar:
+    # ⬇️ url 부분에 방금 만드신 '통합 포털'의 실제 배포 주소를 넣으세요!
+    st.link_button("🏠 통합 포털로 돌아가기", url="https://ip2b-work-tools.streamlit.app/", use_container_width=True)
+    st.markdown("---") # 시각적으로 깔끔하게 구분선 추가
+
+    # --- (기존 코드) 원래 있던 사이드바 내용들 시작 ---
     st.markdown("### 💡 자주 묻는 질문")
     
     if st.button("🤔 녹색인증의 종류는?", use_container_width=True):
