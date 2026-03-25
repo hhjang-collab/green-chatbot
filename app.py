@@ -160,9 +160,19 @@ with st.spinner("시스템을 준비하고 있습니다..."):
 suggested_prompt = None
 
 with st.sidebar:
-    # ⬇️ url 부분에 방금 만드신 '통합 포털'의 실제 배포 주소를 넣으세요!
-    st.link_button("🏠 통합 포털로 돌아가기", url="https://ip2b-work-tools.streamlit.app/", use_container_width=True)
-    st.markdown("---") # 시각적으로 깔끔하게 구분선 추가
+    # HTML을 사용해 심플하고 여백이 얇은 텍스트 링크를 만듭니다.
+    # target="_self"를 넣으면 새 창이 뜨지 않고 현재 창에서 바로 포털로 이동해서 훨씬 깔끔합니다!
+    st.markdown(
+        """
+        <div style="padding-bottom: 10px;">
+            <a href="https://your-portal-url.streamlit.app" target="_self" style="text-decoration: none; color: #31333F; font-size: 15px; font-weight: 600;">
+                🔙 통합 포털로 돌아가기
+            </a>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
+    st.markdown("---")
 
     # --- (기존 코드) 원래 있던 사이드바 내용들 시작 ---
     st.markdown("### 💡 자주 묻는 질문")
