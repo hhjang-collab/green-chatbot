@@ -203,7 +203,7 @@ with st.sidebar:
     st.markdown("### 🔗 관련 링크")
     
     # [설정]📗 2025 녹색인증 FAQ 매뉴얼 링크 (원하는 주소를 아래에 입력하세요)
-    faq_manual_url = "https://cdn.jsdelivr.net/gh/hhjang-collab/green-chatbot-public@main/manual.pdf"
+    faq_manual_url = "https://github.com/hhjang-collab/green-chatbot/blob/main/manual.pdf"
     st.link_button(label="📗 녹색인증 FAQ 매뉴얼", url=faq_manual_url, use_container_width=True)
     
     # [설정]📞 전담·평가기관 연락처 링크 (원하는 주소를 아래에 입력하세요)
