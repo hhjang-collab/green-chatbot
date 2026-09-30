@@ -1,5 +1,6 @@
 import os
 import base64
+from datetime import datetime, timezone, timedelta
 import streamlit as st
 import streamlit.components.v1 as components
 from langchain_community.vectorstores import Chroma
@@ -113,6 +114,9 @@ header_html = f"""
     <p style="margin-top: 10px; font-size: 1.05em; opacity: 0.75;">
         녹색인증 제도와 관련된 질문을 입력하시면, 매뉴얼을 기반으로 답변해 드립니다.
     </p>
+    <p style="margin-top: -5px; font-size: 0.9em; opacity: 0.6;">
+        ※ 2025 녹색인증 FAQ 매뉴얼 기준 (심의위원회 일정은 2026년 공지 반영)
+    </p>
 </div>
 """
 st.markdown(header_html, unsafe_allow_html=True)
@@ -131,8 +135,16 @@ def load_rag():
     embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
     vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0)
-    
+    # Gemini 3.x 모델은 temperature 등 설정을 빼고 기본값 사용을 권장 (구글 공식 문서)
+    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+
+    # 📅 심의위원회 일정 (매년 공지가 바뀌면 schedule.txt 내용만 교체)
+    schedule_text = ""
+    if os.path.exists("schedule.txt"):
+        with open("schedule.txt", encoding="utf-8") as f:
+            # 중괄호는 프롬프트 변수로 오인되므로 이스케이프 처리
+            schedule_text = f.read().replace("{", "{{").replace("}", "}}")
+
     system_prompt = (
         "당신은 '녹색인증제도' 관련 질문에 답변하는 전문 AI 챗봇입니다.\n\n"
         "### 💡 [답변 행동 지침]\n"
@@ -147,6 +159,27 @@ def load_rag():
         "   [출처 표기 예시]\n"
         "   📗 출처: 2025 녹색인증 FAQ 매뉴얼 (전체 인증절차: 11p, 세부 신청 단계: 31p, 45p)\n\n"
         "6. 가독성: 사용자가 읽기 편하도록 핵심 키워드는 **굵은 글씨**로 강조하고, 여러 항목을 나열할 때는 글머리 기호(-, *)를 사용하세요.\n\n"
+        "7. ⭐️ 심의위원회 일정 (매우 중요):\n"
+        "   - 심의위원회 개최 월·일자·회차·연간 횟수, 미개최 월에 대한 질문은 반드시 아래 [2026 심의위원회 일정]만 기준으로 답하세요.\n"
+        "   - 매뉴얼(문맥)에 있는 '연 10회(2, 8월 미개최)' 등의 일정 정보는 2025년 기준이므로 인용하거나 언급하지 마세요. 2026년은 1월과 8월이 미개최입니다.\n"
+        "   - 매뉴얼에는 '정확한 심의 일자는 홈페이지 공지사항을 확인하라'는 안내가 있지만, 이 챗봇은 그 공지 내용을 이미 갖고 있습니다. 홈페이지 확인으로 안내를 대신하지 말고, 반드시 일정표의 실제 날짜를 직접 제시하세요.\n"
+        "   - 일정을 물으면 남은 일정(오늘 이후)을 먼저 강조하고, 연간 전체 일정도 함께 보여주세요.\n"
+        "   [일정 질문 답변 예시 — 오늘이 9월 30일인 경우의 예시일 뿐이며, 실제로는 오늘 날짜 기준으로 계산하세요]\n"
+        "   - **심의위원회 개최**: 2026년 연 10회 (1월·8월 미개최)\n"
+        "     - 다음 심의: **10월 15일(목)** 제220회\n"
+        "     - 남은 일정: 11월 19일(목), 12월 17일(목)\n"
+        "     - (연간 전체 일정 나열)\n"
+        "   - **결과발표**: (매뉴얼 내용으로 작성)\n"
+        "   📅 출처: 녹색인증 홈페이지 공지사항 「2026년도 녹색인증심의위원회 일정」\n"
+        "   📗 출처: 2025 녹색인증 FAQ 매뉴얼 (결과발표: 96p)\n"
+        "   - '다음 심의', '이번 달 심의'처럼 시점이 필요한 질문은 오늘 날짜({today})를 기준으로 판단하세요.\n"
+        "   - 신청 마감일처럼 일정표에 없는 내용은 추측하지 말고, 녹색인증 홈페이지 공지사항을 확인하도록 안내하세요.\n"
+        "   - 결과발표 시기, 결과 확인 방법 등 일정표에 없는 절차는 매뉴얼(문맥) 내용으로 답하세요.\n"
+        "   - 일정 정보를 사용한 경우 출처에 아래처럼 함께 표기하세요.\n"
+        "     📅 출처: 녹색인증 홈페이지 공지사항 「2026년도 녹색인증심의위원회 일정」\n"
+        "   - 심의 일정과 관련 없는 질문에는 일정 정보를 덧붙이지 마세요.\n\n"
+        "8. 녹색인증 홈페이지 주소는 반드시 https://www.greencertif.or.kr 로 표기하세요. 다른 주소를 만들어 쓰지 마세요.\n\n"
+        f"[2026 심의위원회 일정]\n{schedule_text}\n\n"
         "문맥(Context): {context}"
     )
     prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "{input}")])
@@ -191,7 +224,7 @@ with st.sidebar:
     if st.button("🤝 기술, 제품 동시 신청은?", use_container_width=True):
         suggested_prompt = "동시신청이 가능한가요? 동시 신청 시 장점과 단점은 무엇인가요?"
     if st.button("🗓️ 심의일정 및 결과발표는?", use_container_width=True):
-        suggested_prompt = "심의위원회 개최날짜와 결과발표는 언제인가요?"
+        suggested_prompt = "2026년 심의위원회 일정과 결과발표 시기는 언제인가요?"
 
     # 기본 구분선 대신, 여백을 꽉 조인 HTML 구분선으로 교체!
     st.markdown(
@@ -233,7 +266,8 @@ if final_prompt:
         with st.spinner("답변을 준비하고 있습니다..."):
             try:
                 # AI에게 매뉴얼 검색 및 답변을 요청합니다.
-                response = rag_chain.invoke({"input": final_prompt})
+                today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y년 %m월 %d일")
+                response = rag_chain.invoke({"input": final_prompt, "today": today})
                 full_response = response["answer"]
                 
                 # 오류 없이 무사히 답변을 가져왔을 때만 화면에 출력합니다.
