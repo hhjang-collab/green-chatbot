@@ -265,7 +265,8 @@ with st.sidebar:
     # [설정]📗 2025 녹색인증 FAQ 매뉴얼 링크 (원하는 주소를 아래에 입력하세요)
     # static 폴더의 PDF를 앱이 직접 제공 → 크롬 등 브라우저 PDF 뷰어로 바로 열림
     # (.streamlit/config.toml 의 enableStaticServing = true 필요)
-    faq_manual_url = "https://green-chatbot-56eztzpmyzchahoppzgsmd.streamlit.app/app/static/manual.pdf"
+    # Streamlit Community Cloud는 '/~/+/' 경로로 들어가야 앱 화면을 거치지 않고 파일에 바로 접근됨
+    faq_manual_url = "https://green-chatbot-56eztzpmyzchahoppzgsmd.streamlit.app/~/+/app/static/manual.pdf"
     st.link_button(label="📗 녹색인증 FAQ 매뉴얼", url=faq_manual_url, use_container_width=True)
     
     # [설정]📞 전담·평가기관 연락처 링크 (원하는 주소를 아래에 입력하세요)
