@@ -7,7 +7,7 @@
   - 임베딩 모델: gemini-embedding-001 (app.py와 반드시 동일해야 함)
 
 사용법
-  1) 새 매뉴얼을 이 파일과 같은 폴더에 manual.pdf 이름으로 둡니다.
+  1) 새 매뉴얼을 static 폴더에 manual.pdf 이름으로 둡니다(기존 파일 교체).
   2) 터미널에서 API 키를 지정합니다.
        Windows : set GOOGLE_API_KEY=발급받은키
        Mac     : export GOOGLE_API_KEY=발급받은키
@@ -25,7 +25,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-PDF_PATH = "manual.pdf"
+PDF_PATH = "static/manual.pdf"
 DB_DIR = "./chroma_db"
 EMBEDDING_MODEL = "gemini-embedding-001"
 CHUNK_SIZE = 1000

@@ -15,7 +15,23 @@ def get_base64_of_bin_file(bin_file):
         with open(bin_file, 'rb') as f:
             return base64.b64encode(f.read()).decode()
     except:
-        return "" 
+        return ""
+# --------------------------------------------------------
+
+# --- 🔗 답변 표시 보정: 링크·굵은 글씨가 한글 조사와 붙어 깨지는 현상 방지 ---
+import re
+_URL_RE = re.compile(r"(?<!\]\()(?<!\[)(?<!<)https?://[A-Za-z0-9\-._~:/?#@!$&'+,;=%]+")
+
+def tidy_markdown(text):
+    # 1) 맨 URL을 [주소](주소) 형태로 바꿔, 뒤에 붙은 ')', '**', '에서' 등이 링크에 딸려 들어가지 않게 함
+    def _to_link(m):
+        raw = m.group(0)
+        url = raw.rstrip(".,;:!?'")
+        return f"[{url}]({url})" + raw[len(url):]
+    text = _URL_RE.sub(_to_link, text)
+    # 2) '**굵게(괄호)**에서'처럼 닫는 ** 바로 뒤에 글자가 오면 굵게가 풀리지 않는 문제 → 보이지 않는 공백 삽입
+    text = re.sub(r"(?<=[^\s*])\*\*(?=[가-힣A-Za-z0-9])", "​**", text)
+    return text
 # --------------------------------------------------------
 
 # 1. API 키 (스트림릿 금고에서 가져오기)
@@ -247,7 +263,9 @@ with st.sidebar:
     st.markdown("### 🔗 관련 링크")
     
     # [설정]📗 2025 녹색인증 FAQ 매뉴얼 링크 (원하는 주소를 아래에 입력하세요)
-    faq_manual_url = "https://github.com/hhjang-collab/green-chatbot/blob/main/manual.pdf"
+    # static 폴더의 PDF를 앱이 직접 제공 → 크롬 등 브라우저 PDF 뷰어로 바로 열림
+    # (.streamlit/config.toml 의 enableStaticServing = true 필요)
+    faq_manual_url = "https://green-chatbot-56eztzpmyzchahoppzgsmd.streamlit.app/app/static/manual.pdf"
     st.link_button(label="📗 녹색인증 FAQ 매뉴얼", url=faq_manual_url, use_container_width=True)
     
     # [설정]📞 전담·평가기관 연락처 링크 (원하는 주소를 아래에 입력하세요)
@@ -279,7 +297,7 @@ if final_prompt:
                 # AI에게 매뉴얼 검색 및 답변을 요청합니다.
                 today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y년 %m월 %d일")
                 response = rag_chain.invoke({"input": final_prompt, "today": today})
-                full_response = response["answer"]
+                full_response = tidy_markdown(response["answer"])
                 
                 # 오류 없이 무사히 답변을 가져왔을 때만 화면에 출력합니다.
                 st.markdown(full_response)
