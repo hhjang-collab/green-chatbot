@@ -131,7 +131,7 @@ def load_rag():
     embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
     vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-    llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0)
     
     system_prompt = (
         "당신은 '녹색인증제도' 관련 질문에 답변하는 전문 AI 챗봇입니다.\n\n"
