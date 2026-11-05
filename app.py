@@ -298,6 +298,21 @@ with st.sidebar:
     contacts_url = "https://www.greencertif.or.kr/ptl/cDefinitionC/dedicated.do"
     st.link_button(label="📞 전담·평가기관 연락처", url=contacts_url, use_container_width=True)
 
+    # 🧪 [임시] 설치된 패키지 버전 확인용 — requirements.txt 버전 고정 후 이 블록 삭제
+    with st.expander("🧪 설치된 버전 확인 (임시)"):
+        from importlib.metadata import version as _ver, PackageNotFoundError as _PNF
+        _pkgs = ["streamlit", "langchain", "langchain-core", "langchain-community", "langchain-classic",
+                 "langchain-google-genai", "langchain-text-splitters", "google-genai",
+                 "google-ai-generativelanguage", "chromadb", "pypdf", "protobuf",
+                 "opentelemetry-api", "opentelemetry-exporter-otlp-proto-grpc"]
+        _lines = []
+        for _p in _pkgs:
+            try:
+                _lines.append(f"{_p}=={_ver(_p)}")
+            except _PNF:
+                _lines.append(f"# {_p} (설치 안 됨)")
+        st.code("\n".join(_lines), language=None)
+
 # --- 🚦 오류 구분: 잠시 뒤 다시 하면 되는 일시적 오류인지 판별 ---
 # 한도 초과(429)·서버 혼잡(503)·시간 초과는 '잠시 후 재시도' 안내, 그 외(키·모델·DB 문제 등)는 관리자 확인 필요
 _TEMP_ERROR_KEYWORDS = ("429", "resource_exhausted", "resourceexhausted", "quota", "rate limit",
