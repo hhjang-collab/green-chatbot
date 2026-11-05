@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 # =====================================================================
@@ -35,6 +35,11 @@ def load_schedule():
 SCHEDULE_TEXT, SCHEDULE_YEAR = load_schedule()
 SCHEDULE_LABEL = f"{SCHEDULE_YEAR}년도 녹색인증심의위원회 일정" if SCHEDULE_YEAR else "녹색인증심의위원회 일정"
 # =====================================================================
+
+# 🔎 검색 설정
+SEARCH_K = 5               # 답변에 넘길 매뉴얼 조각 수 (현재 질문 기준)
+FOLLOW_K = 2               # 이어지는 질문일 때 직전 질문을 섞어 추가로 넘길 조각 수
+MIN_CHUNK_CHARS = 60       # 이보다 짧은 조각(표지·간지 등)은 검색 결과에서 제외
 
 # 💬 이전 대화 기억 설정
 HISTORY_TURNS = 3          # 최근 몇 번의 질문·답변을 함께 전달할지 (늘리면 맥락↑, 사용량↑)
@@ -184,18 +189,30 @@ def load_rag():
 
     embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
     vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-    follow_retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
+    # 표지·간지처럼 내용 없는 조각이 섞여 있으므로 넉넉히 찾은 뒤 걸러서 필요한 개수만 사용
+    retriever = vectorstore.as_retriever(search_kwargs={"k": SEARCH_K * 2})
+
+    def search(query, n, exclude=()):
+        picked = []
+        for d in retriever.invoke(query):
+            text = d.page_content.strip()
+            if len(text) < MIN_CHUNK_CHARS or text in exclude:
+                continue
+            # 쪽 번호 표시용 (예전 DB 대비: page_label이 없으면 page로 계산)
+            d.metadata.setdefault("page_label", str(d.metadata.get("page", 0) + 1))
+            picked.append(d)
+            if len(picked) >= n:
+                break
+        return picked
 
     def retrieve_docs(x):
         # 현재 질문 단독 검색 → 주제가 바뀌어도 관련 내용을 놓치지 않음
-        docs = retriever.invoke(x["input"])
+        docs = search(x["input"], SEARCH_K)
         # '그럼 제품은?' 같은 이어지는 질문 대비: 직전 질문을 함께 넣어 한 번 더 검색해 보충
         prev = x.get("prev_question")
         if prev:
-            seen = {d.page_content for d in docs}
-            extra = follow_retriever.invoke(f"{prev}\n{x['input']}")
-            docs += [d for d in extra if d.page_content not in seen]
+            seen = {d.page_content.strip() for d in docs}
+            docs += search(f"{prev}\n{x['input']}", FOLLOW_K, exclude=seen)
         return docs
     # Gemini 3.x 모델은 temperature 등 설정을 빼고 기본값 사용을 권장 (구글 공식 문서)
     llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
@@ -216,7 +233,8 @@ def load_rag():
         "   - 글머리 기호나 문단마다 반복해서 출처를 달면 화면이 지저분해지므로 절대 금지합니다.\n"
         "   - 전체 답변이 모두 끝난 **맨 마지막에 딱 한 번만** 출처를 표기하세요.\n"
         "   - 단, 여러 페이지의 정보를 조합한 경우, 사용자가 헷갈리지 않도록 아래 예시처럼 어떤 내용이 몇 페이지에 있는지 괄호 안에 요약해서 적어주세요.\n"
-        "   [출처 표기 형식 예시 — ○○p는 문맥에 나온 실제 쪽수로 채우세요]\n"
+        "   - 문맥의 각 조각 맨 앞에 붙은 [○○쪽] 표시가 그 내용의 실제 쪽수입니다. 출처 쪽수는 반드시 이 표시를 기준으로 적고, 표시에 없는 쪽수를 만들지 마세요.\n"
+        "   [출처 표기 형식 예시 — ○○p는 [○○쪽] 표시의 실제 쪽수로 채우세요]\n"
         f"   📗 출처: {MANUAL_NAME} (전체 인증절차: ○○p, 세부 신청 단계: ○○p, ○○p)\n\n"
         "6. 가독성: 사용자가 읽기 편하도록 핵심 키워드는 **굵은 글씨**로 강조하고, 여러 항목을 나열할 때는 글머리 기호(-, *)를 사용하세요.\n\n"
         "7. ⭐️ 심의위원회 일정 (매우 중요):\n"
@@ -257,7 +275,9 @@ def load_rag():
         MessagesPlaceholder("chat_history", optional=True),   # 💬 최근 대화
         ("human", "{input}"),
     ])
-    question_answer_chain = create_stuff_documents_chain(llm, prompt)
+    # 각 조각 앞에 실제 쪽 번호를 붙여 전달 → 출처 쪽수 정확도 향상
+    document_prompt = PromptTemplate.from_template("[{page_label}쪽]\n{page_content}")
+    question_answer_chain = create_stuff_documents_chain(llm, prompt, document_prompt=document_prompt)
     # 검색 결과를 context로 붙인 뒤 답변 생성 (결과는 response["answer"])
     return RunnablePassthrough.assign(context=RunnableLambda(retrieve_docs)).assign(answer=question_answer_chain)
 
