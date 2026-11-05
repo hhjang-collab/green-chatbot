@@ -1,10 +1,15 @@
-streamlit
-langchain
-langchain-community
-langchain-classic
-langchain-google-genai
-chromadb>=0.4.24
-pypdf
-opentelemetry-api>=1.22.0
-opentelemetry-exporter-otlp-proto-grpc>=1.22.0
-protobuf<=3.20.3
+# 2026-11-05 실제 배포 환경에서 확인한 버전으로 고정 (자동 업데이트로 인한 오류 방지)
+# 업그레이드할 때는 한 번에 하나씩 올리고 동작을 확인하세요.
+streamlit==1.60.0
+langchain==1.4.9
+langchain-core==1.7.6
+langchain-community==0.4.2
+langchain-classic==1.0.8
+langchain-google-genai==4.4.3
+langchain-text-splitters==1.1.3
+google-genai==2.34.0
+chromadb==1.5.9
+pypdf==6.21.4
+opentelemetry-api==1.27.0
+opentelemetry-exporter-otlp-proto-grpc==1.27.0
+protobuf==3.20.3

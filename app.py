@@ -6,9 +6,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 # =====================================================================
 # 📌 [매년 확인] 매뉴얼·심의일정 설정 — 연도 관련 정보는 여기서만 관리합니다
@@ -35,6 +35,10 @@ def load_schedule():
 SCHEDULE_TEXT, SCHEDULE_YEAR = load_schedule()
 SCHEDULE_LABEL = f"{SCHEDULE_YEAR}년도 녹색인증심의위원회 일정" if SCHEDULE_YEAR else "녹색인증심의위원회 일정"
 # =====================================================================
+
+# 💬 이전 대화 기억 설정
+HISTORY_TURNS = 3          # 최근 몇 번의 질문·답변을 함께 전달할지 (늘리면 맥락↑, 사용량↑)
+HISTORY_ANSWER_CHARS = 800 # 전달하는 이전 답변의 최대 글자 수 (사용량 절약)
 
 # --- 🖼️ [이동 및 수정] 로고 변환 함수 (호출보다 위에 정의) ---
 def get_base64_of_bin_file(bin_file):
@@ -181,6 +185,18 @@ def load_rag():
     embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
     vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    follow_retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
+
+    def retrieve_docs(x):
+        # 현재 질문 단독 검색 → 주제가 바뀌어도 관련 내용을 놓치지 않음
+        docs = retriever.invoke(x["input"])
+        # '그럼 제품은?' 같은 이어지는 질문 대비: 직전 질문을 함께 넣어 한 번 더 검색해 보충
+        prev = x.get("prev_question")
+        if prev:
+            seen = {d.page_content for d in docs}
+            extra = follow_retriever.invoke(f"{prev}\n{x['input']}")
+            docs += [d for d in extra if d.page_content not in seen]
+        return docs
     # Gemini 3.x 모델은 temperature 등 설정을 빼고 기본값 사용을 권장 (구글 공식 문서)
     llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 
@@ -231,12 +247,19 @@ def load_rag():
         "   - 대신 매뉴얼에서 확인되는 사실만 순서대로 정리하세요: 신청(상시 가능) → 서류 검토·보완 → 현장·종합평가 → 심의위원회 → 결과 통보(심의 후 10일 이내) → 인증서 수령(적합 판정 후 2~3주).\n"
         "   - 참고로 오늘({today}) 이후 남은 심의위원회 날짜를 짧게 덧붙이되, '해당 회차 상정 여부는 평가 진행에 따라 다름'을 함께 적으세요.\n"
         "   - 마지막에 정확한 일정은 담당 평가기관에 문의하도록 안내하세요.\n\n"
+        "10. 이전 대화 활용: '그럼 제품은?', '그건 얼마나 걸려요?'처럼 앞 대화를 이어받는 질문이면 이전 대화를 참고해 무엇을 묻는지 파악하세요. "
+        "단, 답변 내용은 반드시 문맥(Context)에 근거해야 하며, 이전 답변을 근거로 새로운 사실을 만들지 마세요. 앞 대화와 무관한 새 질문이면 이전 대화는 무시하세요.\n\n"
         f"[{sched_label}]\n{schedule_text}\n\n"
         "문맥(Context): {context}"
     )
-    prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "{input}")])
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        MessagesPlaceholder("chat_history", optional=True),   # 💬 최근 대화
+        ("human", "{input}"),
+    ])
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    return create_retrieval_chain(retriever, question_answer_chain)
+    # 검색 결과를 context로 붙인 뒤 답변 생성 (결과는 response["answer"])
+    return RunnablePassthrough.assign(context=RunnableLambda(retrieve_docs)).assign(answer=question_answer_chain)
 
 with st.spinner("시스템을 준비하고 있습니다..."):
     rag_chain = load_rag()
@@ -259,6 +282,10 @@ with st.sidebar:
     )
 
     # --- (기존 코드) 원래 있던 사이드바 내용들 시작 ---
+    # 💬 이전 대화 기억을 비우고 새 주제로 시작
+    if st.button("🆕 새 대화 시작", use_container_width=True, help="지금까지의 대화를 지우고 새로 시작합니다. 이전 대화는 답변에 반영되지 않습니다."):
+        st.session_state.messages = []
+
     st.markdown("### 💡 자주 묻는 질문")
     
     if st.button("🤔 녹색인증의 종류는?", use_container_width=True):
@@ -298,20 +325,6 @@ with st.sidebar:
     contacts_url = "https://www.greencertif.or.kr/ptl/cDefinitionC/dedicated.do"
     st.link_button(label="📞 전담·평가기관 연락처", url=contacts_url, use_container_width=True)
 
-    # 🧪 [임시] 설치된 패키지 버전 확인용 — requirements.txt 버전 고정 후 이 블록 삭제
-    with st.expander("🧪 설치된 버전 확인 (임시)"):
-        from importlib.metadata import version as _ver, PackageNotFoundError as _PNF
-        _pkgs = ["streamlit", "langchain", "langchain-core", "langchain-community", "langchain-classic",
-                 "langchain-google-genai", "langchain-text-splitters", "google-genai",
-                 "google-ai-generativelanguage", "chromadb", "pypdf", "protobuf",
-                 "opentelemetry-api", "opentelemetry-exporter-otlp-proto-grpc"]
-        _lines = []
-        for _p in _pkgs:
-            try:
-                _lines.append(f"{_p}=={_ver(_p)}")
-            except _PNF:
-                _lines.append(f"# {_p} (설치 안 됨)")
-        st.code("\n".join(_lines), language=None)
 
 # --- 🚦 오류 구분: 잠시 뒤 다시 하면 되는 일시적 오류인지 판별 ---
 # 한도 초과(429)·서버 혼잡(503)·시간 초과는 '잠시 후 재시도' 안내, 그 외(키·모델·DB 문제 등)는 관리자 확인 필요
@@ -321,6 +334,19 @@ _TEMP_ERROR_KEYWORDS = ("429", "resource_exhausted", "resourceexhausted", "quota
 def is_temporary_error(e):
     text = f"{type(e).__name__} {e}".lower()
     return any(k in text for k in _TEMP_ERROR_KEYWORDS)
+# -------------------------------------------------------------------
+
+# --- 💬 최근 대화 기록 → 모델 입력 형태로 변환 ---
+def build_history(messages):
+    recent = messages[-HISTORY_TURNS * 2:]
+    history = []
+    for m in recent:
+        if m["role"] == "user":
+            history.append(("human", m["content"]))
+        else:
+            history.append(("ai", m["content"][:HISTORY_ANSWER_CHARS]))
+    prev_question = next((m["content"] for m in reversed(messages) if m["role"] == "user"), None)
+    return history, prev_question
 # -------------------------------------------------------------------
 
 # 4. 채팅 루프 (기존 기록 보여주기)
@@ -346,7 +372,13 @@ if final_prompt:
             try:
                 # AI에게 매뉴얼 검색 및 답변을 요청합니다.
                 today = datetime.now(timezone(timedelta(hours=9))).strftime("%Y년 %m월 %d일")
-                response = rag_chain.invoke({"input": final_prompt, "today": today})
+                history, prev_question = build_history(st.session_state.messages)
+                response = rag_chain.invoke({
+                    "input": final_prompt,
+                    "today": today,
+                    "chat_history": history,
+                    "prev_question": prev_question,
+                })
                 full_response = tidy_markdown(response["answer"])
                 
                 # 오류 없이 무사히 답변을 가져왔을 때만 화면에 출력합니다.
